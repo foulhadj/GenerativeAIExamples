@@ -1,0 +1,87 @@
+kind: AIchorManifest
+apiVersion: 0.2.2
+
+builder:
+  image: huggingface-finetuning-image
+  context: RAG/examples/advanced_rag/multimodal_rag
+  dockerfile: ../../../../RAG/src/chain_server/Dockerfile
+
+spec:
+  operator: docker-compose
+  image: huggingface-finetuning-image
+  command: "docker-compose up -d"
+
+  tensorboard:
+    enabled: false
+
+  types:
+    Master:
+      count: 1
+      resources:
+        cpus: 8
+        ramRatio: 4
+        accelerators:
+          gpu:
+            count: 1
+            type: gpu
+            product: NVIDIA-A100-SXM4-80GB
+    Worker:
+      chain-server: 
+        count: 1
+        resources:
+          cpus: 8
+          ramRatio: 4
+          accelerators:
+            gpu:
+              count: 1
+              type: gpu
+              product: NVIDIA-A100-SXM4-80GB
+        ports:
+          - "8081:8081"
+        environment:
+          EXAMPLE_PATH: 'advanced_rag/multimodal_rag'
+          APP_LLM_MODELNAME: ${APP_LLM_MODELNAME:-"meta/llama3-8b-instruct"}
+          APP_LLM_MODELENGINE: nvidia-ai-endpoints
+          APP_LLM_SERVERURL: ${APP_LLM_SERVERURL:-""}
+          APP_EMBEDDINGS_MODELNAME: ${APP_EMBEDDINGS_MODELNAME:-nvidia/nv-embedqa-e5-v5}
+          APP_EMBEDDINGS_MODELENGINE: ${APP_EMBEDDINGS_MODELENGINE:-nvidia-ai-endpoints}
+          APP_EMBEDDINGS_SERVERURL: ${APP_EMBEDDINGS_SERVERURL:-""}
+          APP_TEXTSPLITTER_MODELNAME: Snowflake/snowflake-arctic-embed-l
+          APP_TEXTSPLITTER_CHUNKSIZE: "510"
+          APP_TEXTSPLITTER_CHUNKOVERLAP: "200"
+          NVIDIA_API_KEY: ${NVIDIA_API_KEY}
+          APP_RETRIEVER_TOPK: "4"
+          APP_RETRIEVER_SCORETHRESHOLD: "0.25"
+          APP_VECTORSTORE_URL: "http://milvus:19530"
+          APP_VECTORSTORE_NAME: "milvus"
+          COLLECTION_NAME: ${COLLECTION_NAME:-multimodal_rag}
+          OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+          OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+          ENABLE_TRACING: "false"
+          LOGLEVEL: ${LOGLEVEL:-INFO}
+
+      rag-playground:
+        count: 1
+        resources:
+          cpus: 4
+          ramRatio: 2
+        ports:
+          - "8090:8090"
+        environment:
+          APP_SERVERURL: "http://chain-server"
+          APP_SERVERPORT: "8081"
+          APP_MODELNAME: ${APP_LLM_MODELNAME:-"meta/llama3-8b-instruct"}
+          OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+          OTEL_EXPORTER_OTLP_PROTOCOL: grpc
+          ENABLE_TRACING: "false"
+
+    include:
+      - path: ../../local_deploy/docker-compose-vectordb.yaml
+      - path: ../../local_deploy/docker-compose-nim-ms.yaml
+
+  volumes:
+    - ./prompt.yaml:/prompt.yaml
+
+  networks:
+    default:
+      name: nvidia-rag
