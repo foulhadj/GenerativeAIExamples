@@ -3,8 +3,8 @@ apiVersion: 0.2.2
 
 builder:
   image: huggingface-finetuning-image
-  context: RAG/examples/advanced_rag/multimodal_rag
-  dockerfile: ../../../src/chain_server/Dockerfile
+  context: ./RAG/examples/advanced_rag/multimodal_rag
+  dockerfile: ./src/chain_server/Dockerfile
 
 spec:
   operator: docker-compose
