@@ -2,13 +2,13 @@ kind: AIchorManifest
 apiVersion: 0.2.2
 
 builder:
-  image: huggingface-finetuning-image
+  image: nvidia-mutlimodal-rag
   context: ./RAG/examples/advanced_rag/multimodal_rag
   dockerfile: ./src/chain_server/Dockerfile
 
 spec:
-  operator: docker-compose
-  image: huggingface-finetuning-image
+  operator: docker-compose 
+  image: nvidia-mutlimodal-rag
   command: "docker-compose up -d"
 
   tensorboard:
